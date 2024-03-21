@@ -1,0 +1,204 @@
+In order for Bison to parse a language, it must be described by a context-free grammar. This means that you specify one or more syntactic groupings and give rules for constructing them from their parts. For example, in the C language, one kind of grouping is called an ‘expression’. One rule for making an expression might be, “An expression can be made of a minus sign and another expression”. Another would be, “An expression can be an integer”. As you can see, rules are often recursive, but there must be at least one rule which leads out of the recursion. The most common formal system for presenting such rules for humans to read is Backus-Naur Form or “BNF”, which was developed in order to specify the language Algol 60. Any grammar expressed in BNF is a context-free grammar. The input to Bison is essentially machine-readable BNF.
+
+There are various important subclasses of context-free grammars. Although it can handle almost all context-free grammars, Bison is optimized for what are called LR(1) grammars. In brief, in these grammars, it must be possible to tell how to parse any portion of an input string with just a single token of lookahead. For historical reasons, Bison by default is limited by the additional restrictions of LALR(1), which is hard to explain simply. See Section 5.7 [Mysterious Conflicts], page 116, for more information on this. As an experimental feature, you can escape these additional restrictions by requesting IELR(1) or canonical LR(1) parser tables. See Section 5.8.1 [LR Table Construction], page 118, to learn how.
+
+Parsers for LR(1) grammars are deterministic, meaning roughly that the next grammar rule to apply at any point in the input is uniquely determined by the preceding input and a fixed, finite portion (called a lookahead) of the remaining input. A context-free grammar can be ambiguous, meaning that there are multiple ways to apply the grammar rules to get the same inputs. Even unambiguous grammars can be nondeterministic, meaning that no fixed lookahead always suffices to determine the next grammar rule to apply. With the proper declarations, Bison is also able to parse these more general context-free grammars, using a technique known as GLR parsing (for Generalized LR). Bison’s GLR parsers are able to handle any context-free grammar for which the number of possible parses of any given string is finite.
+
+In the formal grammatical rules for a language, each kind of syntactic unit or grouping is named by a symbol. Those which are built by grouping smaller constructs according to grammatical rules are called nonterminal symbols; those which can’t be subdivided are called terminal symbols or token types. We call a piece of input corresponding to a single terminal symbol a token, and a piece corresponding to a single nonterminal symbol a grouping.
+
+We can use the C language as an example of what symbols, terminal and nonterminal, mean. The tokens of C are identifiers, constants (numeric and string), and the various keywords, arithmetic operators and punctuation marks. So the terminal symbols of a grammar or C include ‘identifier’, ‘number’, ‘string’, plus one symbol for each keyword, operator or punctuation mark: ‘if’, ‘return’, ‘const’, ‘static’, ‘int’, ‘char’, ‘plus-sign’, ‘open-brace’, ‘close-brace’, ‘comma’ and many more. (These tokens can be subdivided into characters, but that is a matter of lexicography, not grammar.)
+
+The syntactic groupings of C include the expression, the statement, the declaration, and the function definition. These are represented in the grammar of C by nonterminal symbols ‘expression’, ‘statement’, ‘declaration’ and ‘function definition’. The full grammar uses dozens of additional language constructs, each with its own nonterminal symbol, in order to express the meanings of these four. The example above is a function definition; it contains one declaration, and one statement. In the statement, each ‘x’ is an expression and so is ‘x * x’.
+
+Each nonterminal symbol must have grammatical rules showing how it is made out of simpler constructs. For example, one kind of C statement is the return statement; this would be described with a grammar rule which reads informally as follows: A ‘statement’ can be made of a ‘return’ keyword, an ‘expression’ and a ‘semicolon’.
+
+There would be many other rules for ‘statement’, one for each kind of statement in C.
+
+One nonterminal symbol must be distinguished as the special one which defines a complete utterance in the language. It is called the start symbol. In a compiler, this means a complete input program. In the C language, the nonterminal symbol ‘sequence of definitions and declarations’ plays this role.
+
+For example, ‘1 + 2’ is a valid C expression—a valid part of a C program—but it is not valid as an entire C program. In the context-free grammar of C, this follows from the fact that ‘expression’ is not the start symbol. 
+
+The Bison parser reads a sequence of tokens as its input, and groups the tokens using the grammar rules. If the input is valid, the end result is that the entire token sequence reduces to a single grouping whose symbol is the grammar’s start symbol. If we use a grammar for C, the entire input must be a ‘sequence of definitions and declarations’. If not, the parser reports a syntax error.
+
+
+
+
+
+A formal grammar is a mathematical construct. To define the language for Bison, you must write a file expressing the grammar in Bison syntax: a Bison grammar file. See Chapter 3 [Bison Grammar Files], page 51.
+
+A nonterminal symbol in the formal grammar is represented in Bison input as an identifier, like an identifier in C. By convention, it should be in lower case, such as expr, stmt or declaration.
+
+The Bison representation for a terminal symbol is also called a token type. Token types as well can be represented as C-like identifiers. By convention, these identifiers should be upper case to distinguish them from nonterminals: for example, INTEGER, IDENTIFIER, IF or RETURN. A terminal symbol that stands for a particular keyword in the language should be named after that keyword converted to upper case. The terminal symbol error is reserved for error recovery. See Section 3.2 [Symbols], page 57.
+
+A terminal symbol can also be represented as a character literal, just like a C character constant. You should do this whenever a token is just a single character (parenthesis, plus-sign, etc.): use that same character in a literal as the terminal symbol for that token. A third way to represent a terminal symbol is with a C string constant containing several characters. See Section 3.2 [Symbols], page 57, for more information.
+
+The grammar rules also have an expression in Bison syntax. For example, here is the Bison rule for a C return statement. The semicolon in quotes is a literal character token, representing part of the C syntax for the statement; the naked semicolon, and the colon, are Bison punctuation used in every rule.
+
+stmt: RETURN expr ’;’ ;
+
+
+1.3 Semantic Values
+
+A formal grammar selects tokens only by their classifications: for example, if a rule mentions the terminal symbol ‘integer constant’, it means that any integer constant is grammatically valid in that position. The precise value of the constant is irrelevant to how to parse the input: if ‘x+4’ is grammatical then ‘x+1’ or ‘x+3989’ is equally grammatical.
+
+But the precise value is very important for what the input means once it is parsed. A compiler is useless if it fails to distinguish between 4, 1 and 3989 as constants in the program! Therefore, each token in a Bison grammar has both a token type and a semantic value. See Section 3.4 [Defining Language Semantics], page 61, for details.
+
+The token type is a terminal symbol defined in the grammar, such as INTEGER, IDENTIFIER or ’,’. It tells everything you need to know to decide where the token may validly appear and how to group it with other tokens. The grammar rules know nothing about tokens except their types.
+
+The semantic value has all the rest of the information about the meaning of the token, such as the value of an integer, or the name of an identifier. (A token such as ’,’ which is just punctuation doesn’t need to have any semantic value.)
+
+For example, an input token might be classified as token type INTEGER and have the semantic value 4. Another input token might have the same token type INTEGER but value 3989. When a grammar rule says that INTEGER is allowed, either of these tokens is acceptable because each is an INTEGER. When the parser accepts the token, it keeps track of the token’s semantic value.
+
+Each grouping can also have a semantic value as well as its nonterminal symbol. For example, in a calculator, an expression typically has a semantic value that is a number. In a compiler for a programming language, an expression typically has a semantic value that is a tree structure describing the meaning of the expression.
+
+
+
+1.4 Semantic Actions
+
+In order to be useful, a program must do more than parse input; it must also produce some output based on the input. In a Bison grammar, a grammar rule can have an action made up of C statements. Each time the parser recognizes a match for that rule, the action is executed. See Section 3.4.6 [Actions], page 64.
+
+Most of the time, the purpose of an action is to compute the semantic value of the whole construct from the semantic values of its parts. For example, suppose we have a rule which says an expression can be the sum of two expressions. When the parser recognizes such a sum, each of the subexpressions has a semantic value which describes how it was built up. The action for this rule should create a similar sort of value for the newly recognized larger expression.
+
+For example, here is a rule that says an expression can be the sum of two subexpressions:
+
+	expr: expr ’+’ expr { $$ = $1 + $3; } ;
+
+The action says how to produce the semantic value of the sum expression from the values of the two subexpressions.
+
+
+1.5 Writing GLR Parsers
+
+In some grammars, Bison’s deterministic LR(1) parsing algorithm cannot decide whether to apply a certain grammar rule at a given point. That is, it may not be able to decide (on the basis of the input read so far) which of two possible reductions (applications of a grammar rule) applies, or whether to apply a reduction or read more of the input and apply a reduction later in the input. These are known respectively as reduce/reduce conflicts (see Section 5.6 [Reduce/Reduce], page 113), and shift/reduce conflicts (see Section 5.2 [Shift/Reduce], page 108). 
+
+To use a grammar that is not easily modified to be LR(1), a more general parsing algorithm is sometimes necessary. If you include %glr-parser among the Bison declarations in your file (see Section 3.1 [Grammar Outline], page 51), the result is a Generalized LR (GLR) parser. These parsers handle Bison grammars that contain no unresolved conflicts (i.e., after applying precedence declarations) identically to deterministic parsers. However, when faced with unresolved shift/reduce and reduce/reduce conflicts, GLR parsers use the simple expedient of doing both, effectively cloning the parser to follow both possibilities. Each of the resulting parsers can again split, so that at any given time, there can be any number of possible parses being explored. The parsers proceed in lockstep; that is, all of them consume (shift) a given input symbol before any of them proceed to the next. Each of the cloned parsers eventually meets one of two possible fates: either it runs into a parsing error, in which case it simply vanishes, or it merges with another parser, because the two of them have reduced the input to an identical set of symbols.
+
+During the time that there are multiple parsers, semantic actions are recorded, but not performed. When a parser disappears, its recorded semantic actions disappear as well, and are never performed. When a reduction makes two parsers identical, causing them to merge, Bison records both sets of semantic actions. Whenever the last two parsers merge, reverting to the single-parser case, Bison resolves all the outstanding actions either by precedences given to the grammar rules involved, or by performing both actions, and then calling a designated user-defined function on the resulting values to produce an arbitrary merged result.
+
+
+
+1.5.1 Using GLR on Unambiguous Grammars
+
+
+In the simplest cases, you can use the GLR algorithm to parse grammars that are unambiguous but fail to be LR(1). Such grammars typically require more than one symbol of lookahead.
+
+Consider a problem that arises in the declaration of enumerated and subrange types in the programming language Pascal. Here are some examples:
+
+	type subrange = lo .. hi;
+	type enum = (a, b, c);
+
+The original language standard allows only numeric literals and constant identifiers for the subrange bounds (‘lo’ and ‘hi’), but Extended Pascal (ISO/IEC 10206) and many other Pascal implementations allow arbitrary expressions there. This gives rise to the following situation, containing a superfluous pair of parentheses:
+
+	type subrange = (a) .. b;
+
+Compare this to the following declaration of an enumerated type with only one value:
+
+	type enum = (a);
+
+(These declarations are contrived, but they are syntactically valid, and more-complicated cases can come up in practical programs.)
+
+These two declarations look identical until the ‘..’ token. With normal LR(1) one-token lookahead it is not possible to decide between the two forms when the identifier ‘a’ is parsed. It is, however, desirable for a parser to decide this, since in the latter case ‘a’ must become a new identifier to represent the enumeration value, while in the former case ‘a’ must be evaluated with its current meaning, which may be a constant or even a function call.
+
+You could parse ‘(a)’ as an “unspecified identifier in parentheses”, to be resolved later, but this typically requires substantial contortions in both semantic actions and large parts of the grammar, where the parentheses are nested in the recursive rules for expressions.
+
+You might think of using the lexer to distinguish between the two forms by returning different tokens for currently defined and undefined identifiers. But if these declarations occur in a local scope, and ‘a’ is defined in an outer scope, then both forms are possible—either locally redefining ‘a’, or using the value of ‘a’ from the outer scope. So this approach cannot work.
+
+A simple solution to this problem is to declare the parser to use the GLR algorithm. When the GLR parser reaches the critical state, it merely splits into two branches and pursues both syntax rules simultaneously. Sooner or later, one of them runs into a parsing error. If there is a ‘..’ token before the next ‘;’, the rule for enumerated types fails since it cannot accept ‘..’ anywhere; otherwise, the subrange type rule fails since it requires a ‘..’ token. So one of the branches fails silently, and the other one continues normally, performing all the intermediate actions that were postponed during the split.
+
+If the input is syntactically incorrect, both branches fail and the parser reports a syntax error as usual. The effect of all this is that the parser seems to “guess” the correct branch to take, or in other words, it seems to use more lookahead than the underlying LR(1) algorithm actually allows for. In this example, LR(2) would suffice, but also some cases that are not LR(k) for any k can be handled this way.
+
+
+
+
+
+
+
+2 Examples
+
+
+Now we show and explain several sample programs written using Bison: a reverse polish notation calculator, an algebraic (infix) notation calculator — later extended to track “locations” — and a multi-function calculator. All produce usable, though limited, interactive desk-top calculators.
+
+These examples are simple, but Bison grammars for real programming languages are written the same way. You can copy these examples into a source file to try them.
+
+
+2.1 Reverse Polish Notation Calculator
+
+The first example is that of a simple double-precision reverse polish notation calculator (a calculator using postfix operators). This example provides a good starting point, since operator precedence is not an issue. The second example will illustrate how operator precedence is handled.
+
+The source code for this calculator is named rpcalc.y. The ‘.y’ extension is a convention used for Bison grammar files.
+
+2.1.1 Declarations for rpcalc
+
+Here are the C and Bison declarations for the reverse polish notation calculator. As in C, comments are placed between ‘/*...*/’.
+
+The declarations section (see Section 3.1.1 [The prologue], page 51) contains two preprocessor directives and two forward declarations.
+
+The forward declarations for yylex and yyerror are needed because the C language requires that functions be declared before they are used. These functions will be defined in the epilogue, but the parser calls them so they must be declared in the prologue.
+
+The second section, Bison declarations, provides information to Bison about the tokens and their types (see Section 3.1.3 [The Bison Declarations Section], page 56).
+
+The %define directive defines the variable api.value.type, thus specifying the C data type for semantic values of both tokens and groupings (see Section 3.4.1 [Data Types of Semantic Values], page 61). The Bison parser will use whatever type api.value.type is defined as; if you don’t define it, int is the default. Because we specify ‘{double}’, each token and each expression has an associated value, which is a floating point number. C code can use YYSTYPE to refer to the value api.value.type. 
+
+Each terminal symbol that is not a single-character literal must be declared. (Single-character literals normally don’t need to be declared.) In this example, all the arithmetic operators are designated by single-character literals, so the only terminal symbol that needs to be declared is NUM, the token type for numeric constants.
+
+
+2.1.2 Grammar Rules for rpcalc
+
+Here are the grammar rules for the reverse polish notation calculator.
+
+The groupings of the rpcalc “language” defined here are the expression (given the name exp), the line of input (line), and the complete input transcript (input). Each of these nonterminal symbols has several alternate rules, joined by the vertical bar ‘|’ which is read as “or”. The following sections explain what these rules mean.
+
+The semantics of the language is determined by the actions taken when a grouping is recognized. The actions are the C code that appears inside braces. See Section 3.4.6 [Actions], page 64.
+
+You must specify these actions in C, but Bison provides the means for passing semantic values between the rules. In each action, the pseudo-variable $$ stands for the semantic value for the grouping that the rule is going to construct. Assigning a value to $$ is the main job of most actions. The semantic values of the components of the rule are referred to as $1, $2, and so on.
+
+
+2.1.2.1 Explanation of input
+
+Consider the definition of input:
+
+	input:
+	%empty
+	| input line
+	;
+
+This definition reads as follows: “A complete input is either an empty string, or a complete input followed by an input line”. Notice that “complete input” is defined in terms of itself. This definition is said to be left recursive since input appears always as the leftmost symbol in the sequence. See Section 3.3.3 [Recursive Rules], page 60.
+
+The first alternative is empty because there are no symbols between the colon and the first ‘|’; this means that input can match an empty string of input (no tokens). We write the rules this way because it is legitimate to type Ctrl-d right after you start the calculator. It’s conventional to put an empty alternative first and to use the (optional) %empty directive, or to write the comment ‘/* empty */’ in it (see Section 3.3.2 [Empty Rules], page 60).
+
+The second alternate rule (input line) handles all nontrivial input. It means, “After reading any number of lines, read one more line if possible.” The left recursion makes this rule into a loop. Since the first alternative matches empty input, the loop can be executed zero or more times.
+
+The parser function yyparse continues to process input until a grammatical error is seen or the lexical analyzer says there are no more input tokens; we will arrange for the latter to happen at end-of-input.
+
+
+
+2.1.2.2 Explanation of line
+
+
+Now consider the definition of line:
+
+	line:
+	’\n’
+	| exp ’\n’ { printf ("%.10g\n", $1); }
+	;
+
+The first alternative is a token which is a newline character; this means that rpcalc accepts a blank line (and ignores it, since there is no action). The second alternative is an expression followed by a newline. This is the alternative that makes rpcalc useful. The semantic value of the exp grouping is the value of $1 because the exp in question is the first symbol in the alternative. The action prints this value, which is the result of the computation the user asked for.
+
+This action is unusual because it does not assign a value to $$. As a consequence, the semantic value associated with the line is uninitialized (its value will be unpredictable). This would be a bug if that value were ever used, but we don’t use it: once rpcalc has printed the value of the user’s input line, that value is no longer needed.
+
+
+
+2.1.2.3 Explanation of expr
+
+The exp grouping has several rules, one for each kind of expression. The first rule handles the simplest expressions: those that are just numbers. The second handles an addition- expression, which looks like two expressions followed by a plus-sign. The third handles subtraction, and so on.
+
+We have used ‘|’ to join all the rules for exp, but we could equally well have written them separately:
+
+	exp: NUM ;
+	exp: exp exp ’+’ { $$ = $1 + $2; };
+	exp: exp exp ’-’ { $$ = $1 - $2; };
+
+Most of the rules have actions that compute the value of the expression in terms of the value of its parts. For example, in the rule for addition, $1 refers to the first component exp and $2 refers to the second one. The third component, ’+’, has no meaningful associated semantic value, but if it had one you could refer to it as $3. When yyparse recognizes a sum expression using this rule, the sum of the two subexpressions’ values is produced as the value of the entire expression. See Section 3.4.6 [Actions], page 64.
+
+You don’t have to give an action for every rule. When a rule has no action, Bison by default copies the value of $1 into $$. This is what happens in the first rule (the one that uses NUM).
+
+The formatting shown here is the recommended convention, but Bison does not require it. You can add or change white space as much as you wish. For example, this:
