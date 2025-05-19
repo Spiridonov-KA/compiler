@@ -67,15 +67,292 @@
 
 
 /* First part of user prologue.  */
-#line 1 "tmp.y"
+#line 1 "src/grammar.y"
+
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
+#include "lexer.h"
 
-	int yylex (void);
-	void yyerror (char const *);
+int current_line = 1;
 
-#line 79 "tmp.tab.c"
+int yylex (void);
+void yyerror (char const *);
+
+typedef enum {
+	PROGRAM_T,
+	IDENTIFIER_T,
+	ILIT_T,
+	CALL_T,
+	ASSIGN_T,
+	PLUS_T, MINUS_T, MUL_T, DIV_T, UNARY_MINUS_T, UNARY_PLUS_T
+} NODE_T;
+
+typedef struct node_t {
+	NODE_T type;
+	char *value;
+	int num_children;
+	struct node_t **children;
+} node_t;
+
+void free_node(void *node) {
+}
+
+typedef struct stack_t {
+	void *data;
+	int size;
+	struct stack_t *next;
+} stack_t;
+
+static stack_t *create_node(void *data, int size, stack_t *prev_node) {
+	stack_t *res = (stack_t *) malloc(sizeof(stack_t));
+	res->data = data;
+	res->next = prev_node;
+	return res;
+}
+
+void push(stack_t **stack, void *data, int size) {
+	stack_t *new_node = create_node(data, size, *stack);
+	new_node->size = (*stack)->size + 1;
+	*stack = new_node;
+}
+
+void pop(stack_t **stack, void (*free_data)(void *)){
+	stack_t *new_head = (*stack)->next;
+	(*free_data)((*stack)->data);
+	free(*stack);
+	*stack = new_head;
+}
+
+void clear(stack_t **stack, void (*free_data)(void *), int n) {
+	for (int i = 0; i < n; ++i) {
+		assert((*stack)->next != NULL);
+		pop(stack, free_data);
+	}
+}
+
+void init_stack(stack_t **stack) {
+	*stack = (stack_t *)malloc(sizeof(stack_t));
+	(*stack)->next = NULL;
+	(*stack)->size = 0;
+	(*stack)->data = NULL;
+}
+
+node_t *tree;
+stack_t *node_stack = NULL;
+
+typedef struct {
+	int num_params;
+	char *name;
+} function_t;
+
+void free_function(void *fun) {
+	free(((function_t *)fun)->name);
+	free(fun);
+}
+
+stack_t *function_stack = NULL;
+
+void init_function(char *name) {
+	function_t *fun = (function_t *)malloc(sizeof(function_t));
+	fun->num_params = 0;
+	fun->name = (char *)malloc(sizeof(char) * strlen(name) + 1);
+	sprintf(fun->name, "%s", name);
+	push(&function_stack, fun, sizeof(function_t));
+}
+
+void increment_params() {
+	assert(function_stack->size >= 0);
+	++((function_t *)function_stack->data)->num_params;
+}
+
+void rm_function() {
+	pop(&function_stack, free_function);
+}
+
+char *get_fun_name() {
+	return ((function_t *)function_stack->data)->name; 
+}
+
+int get_fun_params() {
+	return ((function_t *)function_stack->data)->num_params;
+}
+
+void fill_value(node_t *node, char *value) {
+	if (value == NULL) {
+		node->value = NULL;
+		return;
+	}
+	int size_of_len = strlen(value);
+	node->value = (char *)malloc(size_of_len + 1);
+	strcpy(node->value, value);
+}
+
+node_t *init_node(NODE_T type, char *value) {
+	node_t *node = (node_t *)malloc(sizeof(node_t));
+	node->type = type;
+	fill_value(node, value);
+	return node;
+}
+
+void add_children(node_t *node, int n) {
+	node->children = (node_t **)malloc(n * sizeof(node_t *));
+	node->num_children = n;
+	for (int i = 0; i < n; ++i) {
+		node->children[i] = node_stack->data;
+		pop(&node_stack, free_node);
+	}
+}
+
+void add_node_in_tree(NODE_T type, char *value) {
+	node_t *node = init_node(type, value);
+	switch(type) {
+		case UNARY_MINUS_T:
+		case UNARY_PLUS_T:
+			add_children(node, 1); break;
+		case PLUS_T:
+		case MINUS_T:
+		case MUL_T:
+		case DIV_T:
+		case ASSIGN_T:
+			add_children(node, 2); break;
+		case PROGRAM_T:
+			add_children(node, node_stack->size); break;
+		case CALL_T:
+			add_children(node, get_fun_params()); break;
+
+		default: break;
+	}
+	push(&node_stack, node, sizeof(node_t));
+}
+
+#define NAME_SIZE 10000
+char str_type[NAME_SIZE];
+int get_str_type(NODE_T type) {
+	switch(type) {
+		case PROGRAM_T: return sprintf(str_type, "%s", "PROGRAM");
+		case IDENTIFIER_T: return sprintf(str_type, "%s", "IDENTIFIER");
+		case ILIT_T: return sprintf(str_type, "%s", "ILIT");
+		case UNARY_PLUS_T:
+		case PLUS_T: return sprintf(str_type, "%s", "PLUS");
+		case UNARY_MINUS_T:
+		case MINUS_T: return sprintf(str_type, "%s", "MINUS");
+		case MUL_T: return sprintf(str_type, "%s", "MUL");
+		case DIV_T: return sprintf(str_type, "%s", "DIV");
+		case CALL_T: return sprintf(str_type, "%s", "CALL");
+		case ASSIGN_T: return sprintf(str_type, "%s", "ASSIGN");
+		default: return -1;
+	}
+	return -1;
+}
+
+char is_leaf(NODE_T type) {
+	switch(type) {
+		case ILIT_T:
+		case IDENTIFIER_T: return 1;
+		default: return 0;
+	}
+	return 0;
+}
+
+char is_fun(NODE_T type) {
+	switch(type) {
+		case CALL_T: return 1;
+		default: return 0;
+	}
+	return 0;
+}
+
+char is_assign(NODE_T type) {
+	switch(type) {
+		case ASSIGN_T: return 1;
+		default: return 0;
+	}
+	return 0;
+}
+
+char is_identifier(node_t *node) {
+	switch (node->type) {
+		case IDENTIFIER_T: return 1;
+		default: return 0;
+	}
+	return 0;
+}
+
+char is_ilit(node_t *node) {
+	switch (node->type) {
+		case ILIT_T: return 1;
+		default: return 0;
+	}
+	return 0;
+}
+
+void print_node(node_t *node, char *is_last, int d) {
+	if (*is_last) {
+		if (d > 1)
+			printf(" ");
+		for (int i = 1; i < d - 1; ++i) {
+			printf("| ");
+		}
+	}
+	else {
+		for (int i = 0; i < d - 1; ++i) {
+			printf("| ");
+		}
+	}
+	if (node->type != PROGRAM_T)
+		printf("|-");
+	int res = get_str_type(node->type);
+	assert(res != -1);
+	if (is_identifier(node) || is_fun(node->type)) {
+		printf("<%s, \"%s\">\n", str_type, node->value);
+	}
+	else if (is_ilit(node)) {
+		printf("<%s, %s>\n", str_type, node->value);
+	}
+	else {
+		printf("<%s>\n", str_type);
+	}
+}
+
+void print_subtree(node_t *node, char *is_last, int d) {
+	// r - number of row
+	// d - depth of tree
+	print_node(node, is_last, d);
+	if (is_leaf(node->type))
+		return;
+	for (int i = node->num_children - 1; i >= 0; --i) {
+		if (node->type == PROGRAM_T && i == 0) *is_last = 1;
+		print_subtree(node->children[i], is_last, d + 1);
+	}
+}
+
+void print_tree(node_t *node) {
+	char is_last = 0;
+	print_subtree(node, &is_last, 0);	
+}
+
+void delete_node(node_t *node) {
+	if (is_leaf(node->type)) {
+		free(node->value);
+		free(node);
+		return;
+	}
+	for (int i = node->num_children - 1; i >= 0; --i) {
+		delete_node(node->children[i]);
+	}
+	free(node->value);
+	free(node->children);
+	free(node);
+}
+
+void delete_tree(node_t *node) {
+	delete_node(node);
+}
+
+
+#line 356 "gen/grammar.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -98,44 +375,7 @@
 #  endif
 # endif
 
-
-/* Debug traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-#if YYDEBUG
-extern int yydebug;
-#endif
-
-/* Token kinds.  */
-#ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
-    YYEMPTY = -2,
-    YYEOF = 0,                     /* "end of file"  */
-    YYerror = 256,                 /* error  */
-    YYUNDEF = 257,                 /* "invalid token"  */
-    NUM = 258                      /* NUM  */
-  };
-  typedef enum yytokentype yytoken_kind_t;
-#endif
-
-/* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
-#endif
-
-
-extern YYSTYPE yylval;
-
-
-int yyparse (void);
-
-
-
+#include "grammar.h"
 /* Symbol kind.  */
 enum yysymbol_kind_t
 {
@@ -144,12 +384,27 @@ enum yysymbol_kind_t
   YYSYMBOL_YYerror = 1,                    /* error  */
   YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
   YYSYMBOL_NUM = 3,                        /* NUM  */
-  YYSYMBOL_4_n_ = 4,                       /* '\n'  */
-  YYSYMBOL_5_ = 5,                         /* '+'  */
-  YYSYMBOL_YYACCEPT = 6,                   /* $accept  */
-  YYSYMBOL_input = 7,                      /* input  */
-  YYSYMBOL_line = 8,                       /* line  */
-  YYSYMBOL_exp = 9                         /* exp  */
+  YYSYMBOL_IDENTIFIER = 4,                 /* IDENTIFIER  */
+  YYSYMBOL_LPARENT = 5,                    /* LPARENT  */
+  YYSYMBOL_RPARENT = 6,                    /* RPARENT  */
+  YYSYMBOL_PLUS = 7,                       /* PLUS  */
+  YYSYMBOL_MINUS = 8,                      /* MINUS  */
+  YYSYMBOL_MUL = 9,                        /* MUL  */
+  YYSYMBOL_DIV = 10,                       /* DIV  */
+  YYSYMBOL_COMMA = 11,                     /* COMMA  */
+  YYSYMBOL_ASSIGN = 12,                    /* ASSIGN  */
+  YYSYMBOL_ERROR = 13,                     /* ERROR  */
+  YYSYMBOL_END_OF_LINE = 14,               /* END_OF_LINE  */
+  YYSYMBOL_YYACCEPT = 15,                  /* $accept  */
+  YYSYMBOL_program = 16,                   /* program  */
+  YYSYMBOL_input = 17,                     /* input  */
+  YYSYMBOL_line = 18,                      /* line  */
+  YYSYMBOL_exp = 19,                       /* exp  */
+  YYSYMBOL_function_name = 20,             /* function_name  */
+  YYSYMBOL_function = 21,                  /* function  */
+  YYSYMBOL_inside = 22,                    /* inside  */
+  YYSYMBOL_get_identifier = 23,            /* get_identifier  */
+  YYSYMBOL_assignment = 24                 /* assignment  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -475,21 +730,21 @@ union yyalloc
 #endif /* !YYCOPY_NEEDED */
 
 /* YYFINAL -- State number of the termination state.  */
-#define YYFINAL  2
+#define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   7
+#define YYLAST   56
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  6
+#define YYNTOKENS  15
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  4
+#define YYNNTS  10
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  7
+#define YYNRULES  26
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  10
+#define YYNSTATES  41
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   258
+#define YYMAXUTOK   269
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -504,10 +759,6 @@ union yyalloc
 static const yytype_int8 yytranslate[] =
 {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       4,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     5,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -528,14 +779,21 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     1,     2,     3
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
+       5,     6,     7,     8,     9,    10,    11,    12,    13,    14
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_int16 yyrline[] =
 {
-       0,    14,    14,    15,    19,    20,    24,    25
+       0,   302,   302,   304,   305,   308,   309,   310,   314,   315,
+     316,   317,   318,   319,   320,   321,   322,   323,   327,   330,
+     331,   332,   335,   336,   337,   340,   342
 };
 #endif
 
@@ -551,8 +809,10 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "\"end of file\"", "error", "\"invalid token\"", "NUM", "'\\n'", "'+'",
-  "$accept", "input", "line", "exp", YY_NULLPTR
+  "\"end of file\"", "error", "\"invalid token\"", "NUM", "IDENTIFIER",
+  "LPARENT", "RPARENT", "PLUS", "MINUS", "MUL", "DIV", "COMMA", "ASSIGN",
+  "ERROR", "END_OF_LINE", "$accept", "program", "input", "line", "exp",
+  "function_name", "function", "inside", "get_identifier", "assignment", YY_NULLPTR
 };
 
 static const char *
@@ -562,12 +822,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-4)
+#define YYPACT_NINF (-7)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-1)
+#define YYTABLE_NINF (-26)
 
 #define yytable_value_is_error(Yyn) \
   0
@@ -576,7 +836,11 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -4,     0,    -4,    -4,    -4,    -4,    -3,    -4,     2,     1
+      -7,    13,     4,    -7,    -7,    16,    27,    27,    27,    -7,
+      -7,    -4,    24,    -7,    44,    25,    35,    36,    28,    28,
+      27,    27,    27,    27,    -7,    19,    27,    -7,    -7,    28,
+      28,    -7,    -7,    -7,    41,    30,    45,    -7,    -7,    27,
+      45
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -584,19 +848,23 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,     0,     1,     6,     4,     3,     0,     5,     0,     7
+       3,     0,     2,     1,     8,     9,     0,     0,     0,     5,
+       4,     0,     0,    17,     0,     0,     9,     0,    15,    14,
+       0,     0,     0,     0,     6,    22,     0,     7,    16,    10,
+      11,    12,    13,    19,    23,     0,    26,    20,    21,     0,
+      24
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -4,    -4,    -4,    -1
+      -7,    -7,    -7,    -7,    -6,    -7,    -7,    -7,    -7,    -7
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1,     5,     6
+       0,     1,     2,    10,    11,    12,    13,    35,    14,    15
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -604,31 +872,49 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-       2,     7,     8,     3,     4,     3,     8,     9
+      17,    18,    19,    20,    21,    22,    23,     4,     5,     6,
+      24,     7,     8,     3,    29,    30,    31,    32,     9,    34,
+      36,   -18,     4,    16,     6,    33,     7,     8,   -25,    25,
+       4,    16,     6,    40,     7,     8,    38,    22,    23,    27,
+     -18,    39,    28,    20,    21,    22,    23,    37,    20,    21,
+      22,    23,    20,    21,    22,    23,    26
 };
 
 static const yytype_int8 yycheck[] =
 {
-       0,     4,     5,     3,     4,     3,     5,     8
+       6,     7,     8,     7,     8,     9,    10,     3,     4,     5,
+      14,     7,     8,     0,    20,    21,    22,    23,    14,    25,
+      26,     5,     3,     4,     5,     6,     7,     8,    12,     5,
+       3,     4,     5,    39,     7,     8,     6,     9,    10,    14,
+       5,    11,     6,     7,     8,     9,    10,     6,     7,     8,
+       9,    10,     7,     8,     9,    10,    12
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,     7,     0,     3,     4,     8,     9,     4,     5,     9
+       0,    16,    17,     0,     3,     4,     5,     7,     8,    14,
+      18,    19,    20,    21,    23,    24,     4,    19,    19,    19,
+       7,     8,     9,    10,    14,     5,    12,    14,     6,    19,
+      19,    19,    19,     6,    19,    22,    19,     6,     6,    11,
+      19
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,     6,     7,     7,     8,     8,     9,     9
+       0,    15,    16,    17,    17,    18,    18,    18,    19,    19,
+      19,    19,    19,    19,    19,    19,    19,    19,    20,    21,
+      21,    21,    22,    22,    22,    23,    24
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
-       0,     2,     0,     2,     1,     2,     1,     3
+       0,     2,     1,     0,     2,     1,     2,     2,     1,     1,
+       3,     3,     3,     3,     2,     2,     3,     1,     1,     3,
+       4,     4,     0,     1,     3,     1,     3
 };
 
 
@@ -1091,30 +1377,153 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 5: /* line: exp '\n'  */
-#line 20 "tmp.y"
-                   {printf("%d\n", yyvsp[-1]);}
-#line 1098 "tmp.tab.c"
+  case 2: /* program: input  */
+#line 302 "src/grammar.y"
+               { add_node_in_tree(PROGRAM_T, NULL); }
+#line 1384 "gen/grammar.c"
     break;
 
-  case 6: /* exp: NUM  */
-#line 24 "tmp.y"
-       { yyval = yyvsp[0]; }
-#line 1104 "tmp.tab.c"
+  case 3: /* input: %empty  */
+#line 304 "src/grammar.y"
+                  {}
+#line 1390 "gen/grammar.c"
     break;
 
-  case 7: /* exp: exp '+' exp  */
-#line 25 "tmp.y"
-               { yyval = yyvsp[-2] + yyvsp[0]; 
-					printf("$1 = %d\n", yyvsp[-2]);
-					printf("$2 = %s\n", yyvsp[-1]);
-					printf("$2 = %d\n", yyvsp[0]);
-				 }
-#line 1114 "tmp.tab.c"
+  case 4: /* input: input line  */
+#line 305 "src/grammar.y"
+                      {}
+#line 1396 "gen/grammar.c"
+    break;
+
+  case 5: /* line: END_OF_LINE  */
+#line 308 "src/grammar.y"
+                                                { ++current_line; }
+#line 1402 "gen/grammar.c"
+    break;
+
+  case 6: /* line: exp END_OF_LINE  */
+#line 309 "src/grammar.y"
+                                                { ++current_line; }
+#line 1408 "gen/grammar.c"
+    break;
+
+  case 7: /* line: assignment END_OF_LINE  */
+#line 310 "src/grammar.y"
+                                        { ++current_line; }
+#line 1414 "gen/grammar.c"
+    break;
+
+  case 8: /* exp: NUM  */
+#line 314 "src/grammar.y"
+                                                { add_node_in_tree(ILIT_T, yyvsp[0]);		  free(yyvsp[0]); }
+#line 1420 "gen/grammar.c"
+    break;
+
+  case 9: /* exp: IDENTIFIER  */
+#line 315 "src/grammar.y"
+                                        { printf("asdf\n");add_node_in_tree(IDENTIFIER_T, yyvsp[0]); free(yyvsp[0]); }
+#line 1426 "gen/grammar.c"
+    break;
+
+  case 10: /* exp: exp PLUS exp  */
+#line 316 "src/grammar.y"
+                                        { add_node_in_tree(PLUS_T, NULL);			}
+#line 1432 "gen/grammar.c"
+    break;
+
+  case 11: /* exp: exp MINUS exp  */
+#line 317 "src/grammar.y"
+                                        { add_node_in_tree(MINUS_T, NULL);			}
+#line 1438 "gen/grammar.c"
+    break;
+
+  case 12: /* exp: exp MUL exp  */
+#line 318 "src/grammar.y"
+                                        { printf("asdf\n"); add_node_in_tree(MUL_T, NULL);        	}
+#line 1444 "gen/grammar.c"
+    break;
+
+  case 13: /* exp: exp DIV exp  */
+#line 319 "src/grammar.y"
+                                        { add_node_in_tree(DIV_T, NULL);        	}
+#line 1450 "gen/grammar.c"
+    break;
+
+  case 14: /* exp: MINUS exp  */
+#line 320 "src/grammar.y"
+                                        { add_node_in_tree(UNARY_MINUS_T, NULL);        	}
+#line 1456 "gen/grammar.c"
+    break;
+
+  case 15: /* exp: PLUS exp  */
+#line 321 "src/grammar.y"
+                                        { add_node_in_tree(UNARY_PLUS_T, NULL);        	}
+#line 1462 "gen/grammar.c"
+    break;
+
+  case 16: /* exp: LPARENT exp RPARENT  */
+#line 322 "src/grammar.y"
+                                {}
+#line 1468 "gen/grammar.c"
+    break;
+
+  case 17: /* exp: function  */
+#line 323 "src/grammar.y"
+                                        { add_node_in_tree(CALL_T, get_fun_name());
+								  rm_function();}
+#line 1475 "gen/grammar.c"
+    break;
+
+  case 18: /* function_name: IDENTIFIER  */
+#line 327 "src/grammar.y"
+                           { init_function(yyvsp[0]); free(yyvsp[0]); }
+#line 1481 "gen/grammar.c"
+    break;
+
+  case 19: /* function: function_name LPARENT RPARENT  */
+#line 330 "src/grammar.y"
+                                                                {}
+#line 1487 "gen/grammar.c"
+    break;
+
+  case 20: /* function: function_name LPARENT exp RPARENT  */
+#line 331 "src/grammar.y"
+                                                            { increment_params(); }
+#line 1493 "gen/grammar.c"
+    break;
+
+  case 21: /* function: function_name LPARENT inside RPARENT  */
+#line 332 "src/grammar.y"
+                                                        {}
+#line 1499 "gen/grammar.c"
+    break;
+
+  case 23: /* inside: exp  */
+#line 336 "src/grammar.y"
+                                                        { increment_params(); }
+#line 1505 "gen/grammar.c"
+    break;
+
+  case 24: /* inside: inside COMMA exp  */
+#line 337 "src/grammar.y"
+                                                { increment_params(); }
+#line 1511 "gen/grammar.c"
+    break;
+
+  case 25: /* get_identifier: IDENTIFIER  */
+#line 340 "src/grammar.y"
+                            { add_node_in_tree(IDENTIFIER_T, yyvsp[0]); free(yyvsp[0]);}
+#line 1517 "gen/grammar.c"
+    break;
+
+  case 26: /* assignment: get_identifier ASSIGN exp  */
+#line 342 "src/grammar.y"
+                                        { add_node_in_tree(ASSIGN_T, NULL); }
+#line 1523 "gen/grammar.c"
     break;
 
 
-#line 1118 "tmp.tab.c"
+#line 1527 "gen/grammar.c"
 
       default: break;
     }
@@ -1307,36 +1716,45 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 32 "tmp.y"
+#line 344 "src/grammar.y"
 
 
 #include <ctype.h>
 #include <stdio.h>
 
+void yyerror(char const * msg)
+{
+	printf("In line %d: syntax error\n", current_line);
+}
 
-int yylex (void) {
-	int c;
-	/* Skip white space. */
-	while ((c = getchar ()) == ' ' || c == '\t')
-		continue;
-	/* Process numbers. */
-	if (c == '.' || isdigit (c)) {
-		ungetc (c, stdin);
-		scanf ("%d", &yylval);
-		return NUM;
+int main( int argc, char **argv ) {
+	++argv, --argc;  /* skip over program name */
+	if ( argc == 0 )
+	    yyin = stdin;
+	else if (argc == 1)
+		yyin = fopen(argv[0], "r" );
+	else {
+		exit(1); 
 	}
-	/* Return end-of-input. */
-	if (c == EOF)
-		return 0;
-	/* Return a single char. */
-	return c;
-}
 
-/* Called by yyparse on error. */
-void yyerror (char const *s) {
-	fprintf (stderr, "%s\n", s);
-}
+	init_stack(&node_stack);
+	init_stack(&function_stack);
+	
+	int res;
+	res = yyparse ();
 
-int main (void) {
-	return yyparse ();
+	if (res != 0) {
+		return res;
+	}
+	assert(node_stack->size == 1);
+	tree = node_stack->data;
+
+	print_tree(tree);
+
+	delete_tree(tree);
+	pop(&node_stack, free_node);
+	free(node_stack);
+	free(function_stack);
+
+	return 0;
 }

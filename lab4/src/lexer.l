@@ -12,6 +12,7 @@
 
 %}
 
+
 %option nounput
 %option noinput
 
@@ -22,6 +23,7 @@ IDENTIFIER		[a-zA-Z_][a-zA-Z0-9_]*
 INCORRECT   {NUM}{IDENTIFIER}
 ASSIGN		"="
 COMMA		","
+
 
 %%
 
@@ -46,12 +48,21 @@ COMMA		","
 
 {INCORRECT} { return ERROR; }
 
-{IDENTIFIER} { return IDENTIFIER; }
+{IDENTIFIER} {
+
+	yylval = malloc(strlen(yytext) + 1);;
+	sprintf(yylval, "%s", yytext);
+	return IDENTIFIER; 
+
+}
 		
 {NUM}	{ 
 			long long num = strtoll(yytext, NULL, 10);
-			if (errno == 0 && INT_MIN <= num && num <= INT_MAX)
+			if (errno == 0 && INT_MIN <= num && num <= INT_MAX) {
+				yylval = malloc(strlen(yytext) + 1);;
+				sprintf(yylval, "%lld", num);
 				return NUM;
+				}
 			else
 				return ERROR;
 		}
@@ -61,7 +72,7 @@ COMMA		","
 {COMMA} { return COMMA; }
 
 
-[ \t] { }
+[ \t] {  }
 
 [\n]   { return END_OF_LINE; }
 

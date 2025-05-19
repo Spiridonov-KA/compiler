@@ -1,6 +1,6 @@
-#line 2 "gen/lexer.c"
+#line 2 "gen/main.c"
 
-#line 4 "gen/lexer.c"
+#line 4 "gen/main.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -352,8 +352,8 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
-#define YY_NUM_RULES 11
-#define YY_END_OF_BUFFER 12
+#define YY_NUM_RULES 10
+#define YY_END_OF_BUFFER 11
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
@@ -363,7 +363,7 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[20] =
     {   0,
-        0,    0,   12,   10,    8,    9,    1,    2,    7,    2,
+        0,    0,   11,    9,    8,    8,    1,    2,    7,    2,
         5,    6,    4,    5,    5,    3,    4,    3,    0
     } ;
 
@@ -449,22 +449,21 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "src/lexer.l"
-#line 2 "src/lexer.l"
+#line 1 "src/main.l"
+#line 2 "src/main.l"
 	#include <math.h>
 	#include <stdlib.h>
 	#include <assert.h>
 	#include <limits.h>
-	#include "grammar.h"
 
 	void error(char *s) {
 		printf("ERROR, \"%s\"\n", s);
 		exit(1);
 	}
 
-#line 466 "gen/lexer.c"
+#line 465 "gen/main.c"
 #define YY_NO_INPUT 1
-#line 468 "gen/lexer.c"
+#line 467 "gen/main.c"
 
 #define INITIAL 0
 
@@ -679,10 +678,10 @@ YY_DECL
 		}
 
 	{
-#line 26 "src/lexer.l"
+#line 25 "src/main.l"
 
 
-#line 686 "gen/lexer.c"
+#line 685 "gen/main.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -741,83 +740,91 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 28 "src/lexer.l"
+#line 27 "src/main.l"
 {
 			if (*yytext == '(')
-				return LPARENT;
-			else
-				return RPARENT;
-		   }
+				printf("LPARENT, \"(\"\n");
+			else 
+				printf("RPARENT, \")\"\n");
+			}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 34 "src/lexer.l"
+#line 33 "src/main.l"
 {
 		if (*yytext == '+')
-				return PLUS;
+			printf("PLUS, \"+\"\n");
 		else if (*yytext == '-')
-				return MINUS;
+			printf("MINUS, \"-\"\n");
 		else if (*yytext == '*')
-				return MUL;
-		else if (*yytext == '/') 
-				return DIV;
+			printf("MUL, \"*\"\n");
+		else if (*yytext == '/')
+			printf("DIV, \"/\"\n");
 		else
 			assert(0);
 		}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 47 "src/lexer.l"
-{ return ERROR; }
+#line 46 "src/main.l"
+{
+				error(yytext);
+			}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 49 "src/lexer.l"
-{ return IDENTIFIER; }
+#line 50 "src/main.l"
+{
+			printf("IDENTIFIER, \"%s\"\n", yytext);
+		}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 51 "src/lexer.l"
+#line 54 "src/main.l"
 { 
 			long long num = strtoll(yytext, NULL, 10);
-			if (errno == 0 && INT_MIN <= num && num <= INT_MAX)
-				return NUM;
-			else
-				return ERROR;
+			if (errno == 0 && INT_MIN <= num && num <= INT_MAX) {
+				// printf("ILIT, \"%lld\"\n", num);
+				printf("ILIT, \"%s\"\n", yytext);
+			}
+			else {
+				error(yytext);
+			}
 		}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 59 "src/lexer.l"
-{ return ASSIGN; }
+#line 65 "src/main.l"
+{
+			printf("ASSIGN, \"%s\"\n", yytext);
+		 }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 61 "src/lexer.l"
-{ return COMMA; }
+#line 69 "src/main.l"
+{
+			printf("COMMA, \"%s\"\n", yytext);
+		}
 	YY_BREAK
 case 8:
+/* rule 8 can match eol */
 YY_RULE_SETUP
-#line 64 "src/lexer.l"
+#line 74 "src/main.l"
 { }
 	YY_BREAK
 case 9:
-/* rule 9 can match eol */
 YY_RULE_SETUP
-#line 66 "src/lexer.l"
-{ return END_OF_LINE; }
+#line 76 "src/main.l"
+{ 
+			error(yytext);
+		}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 68 "src/lexer.l"
-{ return ERROR; }
-	YY_BREAK
-case 11:
-YY_RULE_SETUP
-#line 69 "src/lexer.l"
+#line 79 "src/main.l"
 ECHO;
 	YY_BREAK
-#line 821 "gen/lexer.c"
+#line 828 "gen/main.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1785,9 +1792,24 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 69 "src/lexer.l"
-
+#line 79 "src/main.l"
 
 
 int yywrap(){ return 1;}
+int main( int argc, char **argv ) {
+	++argv, --argc;  /* skip over program name */
+	if ( argc == 0 )
+	    yyin = stdin;
+	else if (argc == 1)
+		yyin = fopen(argv[0], "r" );
+	else {
+		// printf("Incorrect input\n");
+		// abort();
+		exit(1); // What is correct abort or exit?
+	}
+	
+	yylex();
+	// (void)input;
+	// (void)yyunput;
+}
 

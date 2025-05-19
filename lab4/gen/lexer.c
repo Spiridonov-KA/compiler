@@ -679,7 +679,7 @@ YY_DECL
 		}
 
 	{
-#line 26 "src/lexer.l"
+#line 28 "src/lexer.l"
 
 
 #line 686 "gen/lexer.c"
@@ -741,7 +741,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 28 "src/lexer.l"
+#line 30 "src/lexer.l"
 {
 			if (*yytext == '(')
 				return LPARENT;
@@ -751,7 +751,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 34 "src/lexer.l"
+#line 36 "src/lexer.l"
 {
 		if (*yytext == '+')
 				return PLUS;
@@ -767,57 +767,66 @@ YY_RULE_SETUP
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 47 "src/lexer.l"
+#line 49 "src/lexer.l"
 { return ERROR; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 49 "src/lexer.l"
-{ return IDENTIFIER; }
+#line 51 "src/lexer.l"
+{
+
+	yylval = malloc(strlen(yytext) + 1);;
+	sprintf(yylval, "%s", yytext);
+	return IDENTIFIER; 
+
+}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 51 "src/lexer.l"
+#line 59 "src/lexer.l"
 { 
 			long long num = strtoll(yytext, NULL, 10);
-			if (errno == 0 && INT_MIN <= num && num <= INT_MAX)
+			if (errno == 0 && INT_MIN <= num && num <= INT_MAX) {
+				yylval = malloc(strlen(yytext) + 1);;
+				sprintf(yylval, "%lld", num);
 				return NUM;
+				}
 			else
 				return ERROR;
 		}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 59 "src/lexer.l"
+#line 70 "src/lexer.l"
 { return ASSIGN; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 61 "src/lexer.l"
+#line 72 "src/lexer.l"
 { return COMMA; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 64 "src/lexer.l"
-{ }
+#line 75 "src/lexer.l"
+{  }
 	YY_BREAK
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 66 "src/lexer.l"
+#line 77 "src/lexer.l"
 { return END_OF_LINE; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 68 "src/lexer.l"
+#line 79 "src/lexer.l"
 { return ERROR; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 69 "src/lexer.l"
+#line 80 "src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 821 "gen/lexer.c"
+#line 830 "gen/lexer.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1785,7 +1794,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 69 "src/lexer.l"
+#line 80 "src/lexer.l"
 
 
 

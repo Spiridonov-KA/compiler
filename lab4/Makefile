@@ -10,7 +10,7 @@ SRC_DIR := src
 LEXER = lexer
 GRAMMAR = grammar
 
-all: ${GEN_DIR} ${BIN_DIR} ${BIN_DIR}/lab3
+all: ${GEN_DIR} ${BIN_DIR} ${BIN_DIR}/lab4
 
 ${BIN_DIR}:
 	mkdir ${BIN_DIR} 
@@ -18,8 +18,8 @@ ${BIN_DIR}:
 ${GEN_DIR}:
 	mkdir ${GEN_DIR}
 
-${BIN_DIR}/lab3: ${GEN_DIR}/${LEXER}.c ${GEN_DIR}/${GRAMMAR}.c
-	${CC} -lm ${CFLAGS} ${GEN_DIR}/${GRAMMAR}.c ${GEN_DIR}/${LEXER}.c -I./gen/ -o ${BIN_DIR}/lab3
+${BIN_DIR}/lab4: ${GEN_DIR}/${LEXER}.c ${GEN_DIR}/${GRAMMAR}.c
+	${CC} -lm -g ${CFLAGS} ${GEN_DIR}/${GRAMMAR}.c ${GEN_DIR}/${LEXER}.c -I./gen/ -o ${BIN_DIR}/lab4
 
 ${GEN_DIR}/${LEXER}.c: ${GEN_DIR} ${SRC_DIR}/${LEXER}.l
 	flex --header-file=${GEN_DIR}/${LEXER}.h -o ${GEN_DIR}/${LEXER}.c ${SRC_DIR}/${LEXER}.l
@@ -31,5 +31,5 @@ ${OBJ_DIR}:
 	mkdir ${OBJ_DIR}
 
 clean:
-	rm -r ${BIN_DIR}
-	rm -r ${GEN_DIR}
+	rm -fr ${BIN_DIR}
+	rm -fr ${GEN_DIR}

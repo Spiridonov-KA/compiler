@@ -71,7 +71,7 @@
 
 	#include <stdio.h>
 	#include <math.h>
-	#include "../gen/lexer.h"
+	#include "lexer.h"
 
 	int current_line = 1;
 
@@ -457,16 +457,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   46
+#define YYLAST   52
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  15
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  7
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  20
+#define YYNRULES  22
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  34
+#define YYNSTATES  36
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   269
@@ -516,9 +516,9 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    27,    27,    27,    29,    29,    29,    32,    33,    34,
-      35,    36,    37,    38,    39,    40,    44,    47,    48,    49,
-      54
+       0,    27,    27,    27,    29,    30,    31,    34,    35,    36,
+      37,    38,    39,    40,    41,    42,    46,    47,    48,    51,
+      52,    53,    57
 };
 #endif
 
@@ -561,10 +561,10 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -6,    16,    -6,    -6,    -3,    24,    24,    -6,    -6,    -4,
-      -6,     3,    24,    24,     6,    27,    36,    24,    24,    24,
-      24,    -6,    -6,    31,    12,    36,    -6,    36,    36,    36,
-      36,    24,    -6,    36
+      -6,    16,    -6,    -6,    -3,    34,    34,    -6,    -6,    -4,
+      -6,     4,    28,    34,     6,    37,    18,    34,    34,    34,
+      34,    -6,    -6,    -6,    42,    11,    18,    -6,    18,    18,
+      18,    18,    -6,    -6,    34,    18
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -573,9 +573,9 @@ static const yytype_int8 yypact[] =
 static const yytype_int8 yydefact[] =
 {
        2,     0,     1,     7,     8,     0,     0,     4,     3,     0,
-      15,     0,    17,     0,     8,     0,    13,     0,     0,     0,
-       0,     5,     6,    18,     0,    20,    14,     9,    10,    11,
-      12,     0,    16,    19
+      15,     0,    19,     0,     8,     0,    13,     0,     0,     0,
+       0,     5,     6,    16,    20,     0,    22,    14,     9,    10,
+      11,    12,    17,    18,     0,    21
 };
 
 /* YYPGOTO[NTERM-NUM].  */
@@ -587,7 +587,7 @@ static const yytype_int8 yypgoto[] =
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1,     8,     9,    10,    24,    11
+       0,     1,     8,     9,    10,    25,    11
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -595,20 +595,22 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      15,    16,    12,    17,    18,    19,    20,    23,    25,    13,
-      21,    12,    27,    28,    29,    30,     2,    22,    32,     3,
-       4,     5,     0,     0,     6,     0,    33,     3,    14,     5,
-       7,     0,     6,    26,    17,    18,    19,    20,    17,    18,
-      19,    20,    31,    17,    18,    19,    20
+      15,    16,    12,    17,    18,    19,    20,    24,    26,    13,
+      21,    12,    28,    29,    30,    31,     2,    33,    22,     3,
+       4,     5,    34,     0,     6,    17,    18,    19,    20,    35,
+       7,     3,    14,     5,    23,     0,     6,     3,    14,     5,
+       0,     0,     6,    27,    17,    18,    19,    20,    32,    17,
+      18,    19,    20
 };
 
 static const yytype_int8 yycheck[] =
 {
        5,     6,     5,     7,     8,     9,    10,    12,    13,    12,
-      14,     5,    17,    18,    19,    20,     0,    14,     6,     3,
-       4,     5,    -1,    -1,     8,    -1,    31,     3,     4,     5,
-      14,    -1,     8,     6,     7,     8,     9,    10,     7,     8,
-       9,    10,    11,     7,     8,     9,    10
+      14,     5,    17,    18,    19,    20,     0,     6,    14,     3,
+       4,     5,    11,    -1,     8,     7,     8,     9,    10,    34,
+      14,     3,     4,     5,     6,    -1,     8,     3,     4,     5,
+      -1,    -1,     8,     6,     7,     8,     9,    10,     6,     7,
+       8,     9,    10
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
@@ -617,24 +619,24 @@ static const yytype_int8 yystos[] =
 {
        0,    16,     0,     3,     4,     5,     8,    14,    17,    18,
       19,    21,     5,    12,     4,    18,    18,     7,     8,     9,
-      10,    14,    14,    18,    20,    18,     6,    18,    18,    18,
-      18,    11,     6,    18
+      10,    14,    14,     6,    18,    20,    18,     6,    18,    18,
+      18,    18,     6,     6,    11,    18
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
        0,    15,    16,    16,    17,    17,    17,    18,    18,    18,
-      18,    18,    18,    18,    18,    18,    19,    20,    20,    20,
-      21
+      18,    18,    18,    18,    18,    18,    19,    19,    19,    20,
+      20,    20,    21
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     0,     2,     1,     2,     2,     1,     1,     3,
-       3,     3,     3,     2,     3,     1,     4,     0,     1,     3,
-       3
+       3,     3,     3,     2,     3,     1,     3,     4,     4,     0,
+       1,     3,     3
 };
 
 
@@ -1099,96 +1101,108 @@ yyreduce:
     {
   case 4: /* line: END_OF_LINE  */
 #line 29 "src/grammar.y"
-                  { ++current_line; }
-#line 1104 "gen/grammar.c"
+                                                { ++current_line; }
+#line 1106 "gen/grammar.c"
     break;
 
   case 5: /* line: exp END_OF_LINE  */
-#line 29 "src/grammar.y"
-                                                        { ++current_line; }
-#line 1110 "gen/grammar.c"
+#line 30 "src/grammar.y"
+                                                { ++current_line; }
+#line 1112 "gen/grammar.c"
+    break;
+
+  case 6: /* line: assignment END_OF_LINE  */
+#line 31 "src/grammar.y"
+                                        { ++current_line; }
+#line 1118 "gen/grammar.c"
     break;
 
   case 7: /* exp: NUM  */
-#line 32 "src/grammar.y"
-                                                        { printf("2\n"); }
-#line 1116 "gen/grammar.c"
+#line 34 "src/grammar.y"
+                                                        {}
+#line 1124 "gen/grammar.c"
     break;
 
   case 8: /* exp: IDENTIFIER  */
-#line 33 "src/grammar.y"
-                                                { printf("2\n"); }
-#line 1122 "gen/grammar.c"
+#line 35 "src/grammar.y"
+                                                {}
+#line 1130 "gen/grammar.c"
     break;
 
   case 9: /* exp: exp PLUS exp  */
-#line 34 "src/grammar.y"
-                                                { printf("3\n"); }
-#line 1128 "gen/grammar.c"
+#line 36 "src/grammar.y"
+                                                {}
+#line 1136 "gen/grammar.c"
     break;
 
   case 10: /* exp: exp MINUS exp  */
-#line 35 "src/grammar.y"
-                                                { printf("3\n"); }
-#line 1134 "gen/grammar.c"
+#line 37 "src/grammar.y"
+                                                {}
+#line 1142 "gen/grammar.c"
     break;
 
   case 11: /* exp: exp MUL exp  */
-#line 36 "src/grammar.y"
-                                                { printf("3\n"); }
-#line 1140 "gen/grammar.c"
+#line 38 "src/grammar.y"
+                                                {}
+#line 1148 "gen/grammar.c"
     break;
 
   case 12: /* exp: exp DIV exp  */
-#line 37 "src/grammar.y"
-                                                { printf("3\n"); }
-#line 1146 "gen/grammar.c"
+#line 39 "src/grammar.y"
+                                                {}
+#line 1154 "gen/grammar.c"
     break;
 
   case 13: /* exp: MINUS exp  */
-#line 38 "src/grammar.y"
-                                                { printf("3\n"); }
-#line 1152 "gen/grammar.c"
+#line 40 "src/grammar.y"
+                                                {}
+#line 1160 "gen/grammar.c"
     break;
 
   case 14: /* exp: LPARENT exp RPARENT  */
-#line 39 "src/grammar.y"
-                                        { printf("3\n"); }
-#line 1158 "gen/grammar.c"
+#line 41 "src/grammar.y"
+                                        {}
+#line 1166 "gen/grammar.c"
     break;
 
   case 15: /* exp: function  */
-#line 40 "src/grammar.y"
+#line 42 "src/grammar.y"
                                                 {}
-#line 1164 "gen/grammar.c"
+#line 1172 "gen/grammar.c"
     break;
 
-  case 16: /* function: IDENTIFIER LPARENT inside RPARENT  */
-#line 44 "src/grammar.y"
-                                                                {}
-#line 1170 "gen/grammar.c"
-    break;
-
-  case 18: /* inside: exp  */
-#line 48 "src/grammar.y"
-                                                {}
-#line 1176 "gen/grammar.c"
-    break;
-
-  case 19: /* inside: exp COMMA exp  */
-#line 49 "src/grammar.y"
-                                        {}
-#line 1182 "gen/grammar.c"
-    break;
-
-  case 20: /* assignment: IDENTIFIER ASSIGN exp  */
-#line 54 "src/grammar.y"
+  case 16: /* function: IDENTIFIER LPARENT RPARENT  */
+#line 46 "src/grammar.y"
                                                                         {}
-#line 1188 "gen/grammar.c"
+#line 1178 "gen/grammar.c"
+    break;
+
+  case 17: /* function: IDENTIFIER LPARENT exp RPARENT  */
+#line 47 "src/grammar.y"
+                                                                        {}
+#line 1184 "gen/grammar.c"
+    break;
+
+  case 18: /* function: IDENTIFIER LPARENT inside RPARENT  */
+#line 48 "src/grammar.y"
+                                                                    {}
+#line 1190 "gen/grammar.c"
+    break;
+
+  case 21: /* inside: inside COMMA exp  */
+#line 53 "src/grammar.y"
+                                                {}
+#line 1196 "gen/grammar.c"
+    break;
+
+  case 22: /* assignment: IDENTIFIER ASSIGN exp  */
+#line 57 "src/grammar.y"
+                                        {}
+#line 1202 "gen/grammar.c"
     break;
 
 
-#line 1192 "gen/grammar.c"
+#line 1206 "gen/grammar.c"
 
       default: break;
     }
@@ -1381,16 +1395,9 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 58 "src/grammar.y"
+#line 59 "src/grammar.y"
 
 
-// | syntax_error   { printf("syntax_error\n"); }
-// syntax_error: syntax_error any_token;
-// 
-// any_token: NUM | IDENTIFIER | LPARENT | RPARENT | PLUS | END_OF_LINE;
-// any_token: NUM | IDENTIFIER | LPARENT | RPARENT | PLUS | END_OF_LINE;
-
-//| IDENTIFIER		{ printf("2 RULE\n");}
 #include <ctype.h>
 #include <stdio.h>
 
@@ -1399,30 +1406,15 @@ void yyerror(char const * msg)
 	printf("In line %d: syntax error\n", current_line);
 }
 
-
-// int yylex (void) {
-// 	int c;
-// 	/* Skip white space. */
-// 	while ((c = getchar ()) == ' ' || c == '\t')
-// 		continue;
-// 	/* Process numbers. */
-// 	if (c == '.' || isdigit (c)) {
-// 		ungetc (c, stdin);
-// 		scanf ("%lf", &yylval);
-// 		return NUM;
-// 	}
-// 	/* Return end-of-input. */
-// 	if (c == EOF)
-// 		return 0;
-// 	/* Return a single char. */
-// 	return c;
-// }
-
-/* Called by yyparse on error. */
-// void yyerror (char const *s) {
-// 	fprintf (stderr, "%s\n", s);
-// }
-
-int main (void) {
+int main( int argc, char **argv ) {
+	++argv, --argc;  /* skip over program name */
+	if ( argc == 0 )
+	    yyin = stdin;
+	else if (argc == 1)
+		yyin = fopen(argv[0], "r" );
+	else {
+		exit(1); 
+	}
+	
 	return yyparse ();
 }
